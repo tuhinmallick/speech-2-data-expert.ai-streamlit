@@ -66,14 +66,19 @@ def preprocessing(path_base, path_converted_audio):
 
         if file_extension == ".wav":
             file_to_process = file
-            shutil.copy(path_base + file, path_converted_audio + file)
+            shutil.copy(
+                path_base + file_to_process,
+                path_converted_audio + file_to_process,
+            )
         elif file_extension in extension_to_convert:
             subprocess.call(['ffmpeg', '-i', path_base + file,
             path_base + filename + ".wav"])
             shutil.move(path_base + filename + ".wav", path_converted_audio + filename + ".wav")
-            print(file + " is converted into " + filename +".wav")
+            print(f"{file} is converted into {filename}.wav")
         else:
-            print("ERROR: Unsupported file type - "+ file + " was not converted. Modify the pre-processing stage to convert *" + file_extension + " files.")
+            print(
+                f"ERROR: Unsupported file type - {file} was not converted. Modify the pre-processing stage to convert *{file_extension} files."
+            )
 
 
 def resample(file, sr):
@@ -82,11 +87,15 @@ def resample(file, sr):
     audio, sr = librosa.load(path, sr=sr)
     length = librosa.get_duration(audio, sr)
 
-    print("File " + file + " is",datetime.timedelta(seconds=round(length,0)),"sec. long")
+    print(
+        f"File {file} is",
+        datetime.timedelta(seconds=round(length, 0)),
+        "sec. long",
+    )
     sf.write(os.path.join(resampled_folder,file), audio, sr)
     resampled_path = os.path.join(resampled_folder,file)
 
-    print(file + " was resampled to " + str(sr) + "kHz")
+    print(f"{file} was resampled to {str(sr)}kHz")
     return resampled_path, length
 
 
@@ -102,12 +111,12 @@ def asr_transcript(processor, model, resampled_path, length, block_length):
     print("Total number of chunks:",int(chunks))
 
     for n, speech in enumerate(stream):
-        print ("Transcribing chunk number " + str(n+1))
+        print(f"Transcribing chunk number {str(n + 1)}")
         separator = ' '
         if n % 2 == 0:
             separator = '\n'
         transcript += generate_transcription(speech, processor, model) + separator
-    print("Encoding complete. Total number of chunks: " + str(n+1) + "\n")
+    print(f"Encoding complete. Total number of chunks: {str(n + 1)}" + "\n")
     return transcript
 
 
@@ -139,14 +148,13 @@ def text_analysis(transcript, language, audio_report, file, length):
     for lemma in output.main_phrases:
         report += lemma.value + "\n"
     report += '\nMAIN TOPICS:\n'
-    for n,topic in enumerate(output.topics):
+    for topic in output.topics:
         if topic.winner:
-            report += '#' + topic.label + '\n'
+            report += f'#{topic.label}' + '\n'
 
     filepath = os.path.join(audio_report,file)
-    text = open(filepath[:-4] + ".txt","w")
-    text.write(report)
-    text.close()
+    with open(f"{filepath[:-4]}.txt", "w") as text:
+        text.write(report)
     print("\nReport stored at " + filepath[:-4] + ".txt")
     return report
 
@@ -185,20 +193,19 @@ if uploaded_file is not None:
     with col1:
         if st.button("Generate Transcript") or st.session_state.load_state:
             st.session_state.load_state = True
-            with st.spinner(f"Working... 💫 This make take several minutes depending on the file size."):
+            with st.spinner("Working... 💫 This make take several minutes depending on the file size."):
                 speech_to_data(str(uploaded_file.name.split('.')[0]+".txt"))
 
             output_transcript_file = str(uploaded_file.name.split('.')[0]+".txt")
             output_file = open(os.path.join(transcripts, output_transcript_file),"r")
             output_transcript_data = output_file.read()
 
-            download_transcript = st.download_button(
-                                 label="Download Transcript 📝",
-                                 data=output_transcript_data,
-                                 file_name=output_transcript_file,
-                                 mime='text/plain'
-                         )
-            if download_transcript:
+            if download_transcript := st.download_button(
+                label="Download Transcript 📝",
+                data=output_transcript_data,
+                file_name=output_transcript_file,
+                mime='text/plain',
+            ):
                 st.balloons()
                 st.success('✅ Download Successful !!')
             with col2:
@@ -207,13 +214,12 @@ if uploaded_file is not None:
                     output_file = open(os.path.join(audio_report, output_report_file),"r")
                     output_report_data = output_file.read()
 
-                    download_report = st.download_button(
-                                         label="Download Text Analysis Report 📝",
-                                         data=output_report_data,
-                                         file_name=output_report_file,
-                                         mime='text/plain'
-                                 )
-                    if download_report:
+                    if download_report := st.download_button(
+                        label="Download Text Analysis Report 📝",
+                        data=output_report_data,
+                        file_name=output_report_file,
+                        mime='text/plain',
+                    ):
                         st.balloons()
                         st.success('✅ Download Successful !!')
     clean_directory(path_base)
